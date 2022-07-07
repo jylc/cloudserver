@@ -1,6 +1,9 @@
 package utils
 
-import "os"
+import (
+	"os"
+	"path/filepath"
+)
 
 func Exist(path string) bool {
 	_, err := os.Stat(path)
@@ -8,4 +11,15 @@ func Exist(path string) bool {
 		return false
 	}
 	return true
+}
+
+func CreateNestedFile(path string) (*os.File, error) {
+	dir := filepath.Dir(path)
+	if !Exist(dir) {
+		err := os.MkdirAll(dir, 0777)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return os.Create(path)
 }

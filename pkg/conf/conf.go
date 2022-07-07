@@ -1,64 +1,108 @@
 package conf
 
 import (
+	"bytes"
+	"github.com/go-playground/validator/v10"
 	"github.com/jylc/cloudserver/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 )
 
 type databaseConf struct {
-	Type        string
-	Host        string
-	Port        string
-	User        string
-	Password    string
-	TablePrefix string
-	Charset     string
+	Type        string `ini:"type" `
+	Host        string `ini:"host"`
+	Port        string `ini:"port"`
+	User        string `ini:"user"`
+	Password    string `ini:"password"`
+	Name        string `ini:"name"`
+	TablePrefix string `ini:"tableprefix"`
+	Charset     string `ini:"charset"`
 }
 
 type systemConf struct {
-	AppMode string
-	Port    string
+	AppMode       string `ini:"app_mode" validate:"eq=development|eq=release"`
+	Port          string `ini:"port"`
+	SessionSecret string `ini:"secret"`
 }
 
 type redisConf struct {
-	Server   string
-	Password string
-	Db       uint
+	Server   string `ini:"server"`
+	Password string `ini:"password"`
+	Db       string `ini:"db"`
+}
+type defaultConfig struct {
+	Database *databaseConf
+	Redis    *redisConf
+	System   *systemConf
 }
 
 var cfg *ini.File
-var (
-	Dbc *databaseConf
-	Sc  *systemConf
-	Rc  *redisConf
-)
+
+var dC = &defaultConfig{
+	Database: Dbc,
+	Redis:    Rc,
+	System:   Sc,
+}
 
 func Init(path string) {
 	var err error
 	if path != "" && utils.Exist(path) {
+		//如果存在配置文件，就将配置文件中的覆盖默认配置
 		cfg, err = ini.Load(path)
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
-		Dbc = new(databaseConf)
-		err = cfg.Section("database").MapTo(Dbc)
-		if err != nil {
-			logrus.Error(err)
-			return
+
+		configMaps := map[string]interface{}{
+			"Database": Dbc,
+			"System":   Sc,
+			"Redis":    Rc,
 		}
-		Sc = new(systemConf)
-		err = cfg.Section("system").MapTo(Sc)
-		if err != nil {
-			logrus.Error(err)
-			return
+
+		for name, entity := range configMaps {
+			err = mapTo(name, entity)
+			if err != nil {
+				logrus.Panic(err)
+			}
 		}
-		Rc = new(redisConf)
-		err = cfg.Section("redis").MapTo(Rc)
+
+		err = cfg.SaveTo(path)
 		if err != nil {
 			logrus.Error(err)
-			return
+		}
+	} else {
+		file, err := utils.CreateNestedFile(path)
+		if err != nil {
+			logrus.Panic(err)
+		}
+		_ = file.Close()
+
+		cfg = ini.Empty()
+		err = ini.ReflectFrom(cfg, &dC)
+		if err != nil {
+			logrus.Panic(err)
+		}
+		err = cfg.SaveTo(path)
+		if err != nil {
+			logrus.Panic(err)
 		}
 	}
+	buffer := new(bytes.Buffer)
+	_, _ = cfg.WriteTo(buffer)
+	logrus.Println(buffer)
+
+}
+
+func mapTo(name string, entity interface{}) error {
+	err := cfg.Section(name).MapTo(entity)
+	if err != nil {
+		return err
+	}
+	validate := validator.New()
+	err = validate.Struct(entity)
+	if err != nil {
+		return err
+	}
+	return nil
 }

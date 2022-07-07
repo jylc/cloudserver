@@ -6,3 +6,7 @@
 *.njsproj
 *.sln
 *.sw?
+
+assets
+.gitignore
+config.ini
