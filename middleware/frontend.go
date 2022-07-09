@@ -3,6 +3,8 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/bootstrap"
+	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -38,9 +40,17 @@ func FrontendFileHandler() gin.HandlerFunc {
 
 		//如果是"index.html"，"/"或者访问的路径不存在则返回index.html；index.html页面需要设置
 		if (path == "/index.html") || (path == "/") || !bootstrap.StaticFS.Exists("/", path) {
-
+			options := models.GetSettingByNames(
+				"siteName", "siteKeywords", "siteScript", "pwa_small_icon",
+			)
+			finalIndex := utils.Replace(indexString, map[string]string{
+				"{siteName}":       options["siteName"],
+				"{siteKeywords}":   options["siteKeywords"],
+				"{siteScript}":     options["siteScript"],
+				"{pwa_small_icon}": options["pwa_small_icon"],
+			})
 			c.Header("Content-Type", "text/html")
-			c.String(200, indexString)
+			c.String(200, finalIndex)
 			c.Abort()
 			return
 		}

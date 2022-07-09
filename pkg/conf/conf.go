@@ -6,6 +6,7 @@ import (
 	"github.com/jylc/cloudserver/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
+	"time"
 )
 
 type databaseConf struct {
@@ -23,6 +24,7 @@ type systemConf struct {
 	AppMode       string `ini:"app_mode" validate:"eq=development|eq=release"`
 	Port          string `ini:"port"`
 	SessionSecret string `ini:"secret"`
+	HashIDSalt    string `ini:"hashidsalt"`
 }
 
 type redisConf struct {
@@ -36,6 +38,16 @@ type defaultConfig struct {
 	System   *systemConf
 }
 
+type corsConfig struct {
+	AllowOrigins     []string
+	AllowMethods     []string
+	AllowHeaders     []string
+	ExposeHeaders    []string
+	AllowCredentials bool
+	AllowOriginFunc  func(origin string) bool
+	MaxAge           time.Duration
+}
+
 var cfg *ini.File
 
 var dC = &defaultConfig{
@@ -47,7 +59,7 @@ var dC = &defaultConfig{
 func Init(path string) {
 	var err error
 	if path != "" && utils.Exist(path) {
-		//如果存在配置文件，就将配置文件中的覆盖默认配置
+		//如果存在配置文件，就将文件存在的配置覆盖默认配置
 		cfg, err = ini.Load(path)
 		if err != nil {
 			logrus.Error(err)

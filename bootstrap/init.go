@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/conf"
 	"io/fs"
 	"strings"
@@ -15,4 +16,6 @@ func Init(path string, staticFile fs.FS) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	staticInit(staticFile)
+	models.Init()
+
 }
