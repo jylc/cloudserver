@@ -47,6 +47,12 @@ func GetActivateUserByID(uid interface{}) (User, error) {
 	return user, result.Error
 }
 
+func GetActivateUserByEmail(email string) (User, error) {
+	var user User
+	result := Db.Set("gorm:auto_preload", true).Where("status = ? and email = ?", Activate, email).First(&user)
+	return user, result.Error
+}
+
 func (user *User) IsAnonymous() bool {
 	return user.ID == 0
 }
@@ -107,4 +113,18 @@ func GetUserByEmail(email string) (User, error) {
 	var user User
 	result := Db.Set("gorm:auto_preload", true).Where("email = ?", email).First(&user)
 	return user, result.Error
+}
+
+func (user *User) Update(val map[string]interface{}) error {
+	return Db.Model(user).Updates(val).Error
+}
+
+func GetUserByID(ID interface{}) (User, error) {
+	var user User
+	result := Db.Set("gorm:auto_preload", true).First(&user, ID)
+	return user, result.Error
+}
+
+func (user *User) SetStatus(status int) {
+	Db.Model(&user).Update("status", status)
 }

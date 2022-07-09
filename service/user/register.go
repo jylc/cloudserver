@@ -71,3 +71,17 @@ func (service *RegisterService) Register(c *gin.Context) serializer.Response {
 	}
 	return serializer.Response{}
 }
+
+func (service *SettingService) Activate(c *gin.Context) serializer.Response {
+	uid, _ := c.Get("object_id")
+	user, err := models.GetUserByID(uid.(int))
+	if err != nil {
+		return serializer.Err(serializer.CodeUserNotFound, "User not found", err)
+	}
+
+	if user.Status != models.NotActivate {
+		return serializer.Err(serializer.CodeUserCannotActivate, "This user cannot be activated", nil)
+	}
+	user.SetStatus(models.Activate)
+	return serializer.Response{Data: user.Email}
+}

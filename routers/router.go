@@ -5,7 +5,9 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/middleware"
+	"github.com/jylc/cloudserver/pkg/auth"
 	"github.com/jylc/cloudserver/pkg/conf"
+	"github.com/jylc/cloudserver/pkg/hashid"
 	"github.com/jylc/cloudserver/routers/controllers"
 )
 
@@ -37,8 +39,23 @@ func RouterInit() *gin.Engine {
 		user := version.Group("user")
 		{
 			user.POST("session", middleware.CaptchaRequired("login_captcha"), controllers.UserLogin)
-			user.POST("", middleware.IsFunctionEnabled("register_enabled"),
-				middleware.CaptchaRequired("reg_captcha"))
+			user.POST("",
+				middleware.IsFunctionEnabled("register_enabled"),
+				middleware.CaptchaRequired("reg_captcha"),
+				controllers.UserRegister)
+			user.POST("2fa", controllers.User2FALogin)
+			user.POST("reset", middleware.CaptchaRequired("forget_captcha"), controllers.UserSendReset)
+			user.PATCH("reset", controllers.UserReset)
+
+			user.GET("activate/:id",
+				middleware.SignRequired(auth.General),
+				middleware.HashID(hashid.UserID),
+				controllers.UserActivate)
+
+			user.GET("authn/:username",
+				middleware.IsFunctionEnabled("authn_enable"),
+				controllers.StartLoginAuthn)
+
 		}
 	}
 	return r

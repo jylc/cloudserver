@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/auth"
 	"github.com/jylc/cloudserver/pkg/conf"
 	"io/fs"
 	"strings"
@@ -17,5 +18,6 @@ func Init(path string, staticFile fs.FS) {
 	}
 	staticInit(staticFile)
 	models.Init()
+	auth.Init()
 
 }

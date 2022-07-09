@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	ErrChanNotOpen      = errors.New("mail queue is not open")
 	ErrNoActivateDriver = errors.New("no mail sending service available")
 )
 
