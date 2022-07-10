@@ -5,6 +5,7 @@ import (
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/auth"
 	"github.com/jylc/cloudserver/pkg/conf"
+	"github.com/jylc/cloudserver/pkg/email"
 	"io/fs"
 	"strings"
 )
@@ -19,5 +20,6 @@ func Init(path string, staticFile fs.FS) {
 	staticInit(staticFile)
 	models.Init()
 	auth.Init()
+	email.Init()
 
 }

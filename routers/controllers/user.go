@@ -125,3 +125,15 @@ func FinishLoginAuthn(c *gin.Context) {
 	})
 	c.JSON(200, serializer.BuildUserResponse(expectedUser))
 }
+
+func GetUserAvatar(c *gin.Context) {
+	var service user.AvatarService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get(c)
+		if res.Code == -301 {
+			c.Redirect(301, res.Data.(string))
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

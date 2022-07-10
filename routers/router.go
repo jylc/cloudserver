@@ -53,9 +53,29 @@ func RouterInit() *gin.Engine {
 				controllers.UserActivate)
 
 			user.GET("authn/:username",
-				middleware.IsFunctionEnabled("authn_enable"),
+				middleware.IsFunctionEnabled("authn_enabled"),
 				controllers.StartLoginAuthn)
 
+			user.POST("authn/finish/:username",
+				middleware.IsFunctionEnabled("authn_enabled"),
+				controllers.FinishLoginAuthn)
+
+			user.GET("profile/:id",
+				middleware.HashID(hashid.UserID),
+				controllers.GetUserShare)
+
+			user.GET("avatar/:id/:size",
+				middleware.HashID(hashid.UserID),
+				controllers.GetUserAvatar)
+		}
+
+		sign := version.Group("")
+		sign.Use(middleware.SignRequired(auth.General))
+		{
+			file := version.Group("file")
+			{
+				file.GET("get/:id/:name", controllers.AnonymousGetContent)
+			}
 		}
 	}
 	return r

@@ -20,6 +20,8 @@ func (err AppError) Error() string {
 const (
 	// CodeNoPermissionErr 未授权访问
 	CodeNoPermissionErr = 403
+	// CodeNotFound 资源未找到
+	CodeNotFound = 404
 	// CodeSignExpired 签名过期
 	CodeSignExpired = 40005
 	// CodeUserBaned 用户不活跃
@@ -54,10 +56,20 @@ const (
 	CodeUserCannotActivate = 40034
 	//CodeParamErr 各种奇奇怪怪的参数错误
 	CodeParamErr = 40001
+	// CodeObjectExist 对象已存在
+	CodeObjectExist = 40004
+	// CodeGroupNotAllowed 用户组无法进行此操作
+	CodeGroupNotAllowed = 40007
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
 	CodeEncryptError = 50002
+	// CodeIOFailed IO操作失败
+	CodeIOFailed = 50004
+	// CodeInternalSetting 内部设置参数错误
+	CodeInternalSetting = 50005
+	// CodeNotSet 未定错误，后续尝试从error中获取
+	CodeNotSet = -1
 )
 
 func Err(errCode int, msg string, err error) Response {
