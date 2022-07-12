@@ -31,6 +31,7 @@ type redisConf struct {
 	Server   string `ini:"server"`
 	Password string `ini:"password"`
 	Db       string `ini:"db"`
+	Network  string `ini:"network"`
 }
 type defaultConfig struct {
 	Database *databaseConf

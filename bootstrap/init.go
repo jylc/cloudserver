@@ -17,9 +17,38 @@ func Init(path string, staticFile fs.FS) {
 	if strings.Compare(conf.Sc.AppMode, "development") != 0 {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	staticInit(staticFile)
-	models.Init()
-	auth.Init()
-	email.Init()
+	startUp := []struct {
+		model   string
+		factory func()
+	}{
+		{
+			"both",
+			func() {
+				models.Init()
+			},
+		},
+		{
+			"both",
+			func() {
+				auth.Init()
+			},
+		},
+		{
+			"both",
+			func() {
+				email.Init()
+			},
+		}, {
+			"both",
+			func() {
+				staticInit(staticFile)
+			},
+		},
+	}
 
+	for _, s := range startUp {
+		if s.model == "both" {
+			s.factory()
+		}
+	}
 }
