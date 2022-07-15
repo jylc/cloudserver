@@ -71,3 +71,11 @@ func GetSiteURL() *url.URL {
 	}
 	return base
 }
+
+func GetSettingByNameWithDefault(name, fallback string) string {
+	res := GetSettingByName(name)
+	if res == "" {
+		return fallback
+	}
+	return res
+}

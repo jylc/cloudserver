@@ -29,6 +29,16 @@ type Auth interface {
 	Check(body string, sign string) error
 }
 
+func SignRequest(instance Auth, r *http.Request, expires int64) *http.Request {
+	if expires > 0 {
+		expires += time.Now().Unix()
+	}
+
+	sign := instance.Sign(getSignContent(r), expires)
+	r.Header["Authorization"] = []string{"Bearer " + sign}
+	return r
+}
+
 func SignURI(instance Auth, uri string, expires int64) (*url.URL, error) {
 	if expires != 0 {
 		expires += time.Now().Unix()

@@ -24,6 +24,7 @@ var Sc = &systemConf{
 	Port:          ":8888",
 	SessionSecret: "cloudserver_session",
 	HashIDSalt:    "something really hard to guss",
+	Role:          "master",
 }
 
 var Cc = &corsConfig{

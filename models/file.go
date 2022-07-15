@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"path"
+)
 
 type File struct {
 	gorm.Model
@@ -14,6 +17,7 @@ type File struct {
 	UploadSessionID *string `gorm:"index:session_id;unique_index:session_only_one"`
 	Metadata        string  `gorm:"type:text"`
 
+	Policy             Policy            `gorm:"PRELOAD:false,association_autoupdate:false"`
 	Position           string            `gorm:"-"`
 	MetadataSerialized map[string]string `gorm:"-"`
 }
@@ -30,5 +34,25 @@ func GetFilesByIDsFromTX(tx *gorm.DB, ids []uint, uid uint) ([]File, error) {
 	} else {
 		result = tx.Where("id in (?) AND user_id = ?", ids, uid).Find(&files)
 	}
+	return files, result.Error
+}
+
+func (file *File) GetPolicy() *Policy {
+	if file.Policy.Model.ID == 0 {
+		file.Policy, _ = GetPolicyByID(file.PolicyID)
+	}
+	return &file.Policy
+}
+
+func (folder *Folder) GetChildFiles() ([]File, error) {
+	var files []File
+	result := Db.Where("folder_id = ?", folder.ID).Find(&files)
+
+	if result.Error == nil {
+		for i := 0; i < len(files); i++ {
+			files[i].Position = path.Join(folder.Position, folder.Name)
+		}
+	}
+
 	return files, result.Error
 }

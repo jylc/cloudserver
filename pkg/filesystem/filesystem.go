@@ -1,8 +1,15 @@
 package filesystem
 
 import (
+	"context"
+	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/filesystem/driver"
+	"github.com/jylc/cloudserver/pkg/filesystem/driver/local"
+	"github.com/jylc/cloudserver/pkg/filesystem/driver/remote"
+	"github.com/jylc/cloudserver/pkg/filesystem/fsctx"
+	"github.com/jylc/cloudserver/pkg/serializer"
 	"sync"
 )
 
@@ -76,4 +83,79 @@ func (fs *FileSystem) SetTargetFile(files *[]models.File) {
 	} else {
 		fs.FileTarget = append(fs.FileTarget, *files...)
 	}
+}
+
+func (fs *FileSystem) SignURL(ctx context.Context, file *models.File, ttl int64, isDownload bool) (string, error) {
+	fs.FileTarget = []models.File{*file}
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, *file)
+
+	err := fs.resetPolicyToFirstFile(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	siteURL := models.GetSiteURL()
+	source, err := fs.Handler.Source(ctx, fs.FileTarget[0].SourceName, *siteURL, ttl, isDownload, fs.User.Group.SpeedLimit)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeNotSet, "cannot get external link", err)
+	}
+	return source, nil
+}
+
+func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
+	if len(fs.FileTarget) == 0 {
+		return ErrObjectNotExist
+	}
+
+	fs.Policy = fs.FileTarget[0].GetPolicy()
+	err := fs.DispatchHandler()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (fs *FileSystem) DispatchHandler() error {
+	if fs.Policy == nil {
+		return errors.New("have not set policy")
+	}
+	policyType := fs.Policy.Type
+	currentType := fs.Policy
+
+	switch policyType {
+	case "mock", "anonymous":
+		return nil
+	case "local":
+		fs.Handler = local.Driver{
+			Policy: currentType,
+		}
+		return nil
+	case "remote":
+		handler, err := remote.NewDriver(currentType)
+		if err != nil {
+			return err
+		}
+		fs.Handler = handler
+	default:
+		return ErrUnknownPolicyType
+	}
+	return nil
+}
+
+func NewFileSystem(user *models.User) (*FileSystem, error) {
+	fs := getEmptyFS()
+	fs.User = user
+	fs.Policy = &fs.User.Policy
+
+	err := fs.DispatchHandler()
+	return fs, err
+}
+
+func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
+	user, exists := c.Get("user")
+	if !exists {
+		return NewAnonymousFileSystem()
+	}
+	fs, err := NewFileSystem(user.(*models.User))
+	return fs, err
 }

@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/jylc/cloudserver/pkg/cache"
+	"gorm.io/gorm"
+	"strconv"
+)
 
 type Policy struct {
 	// 表字段
@@ -50,4 +54,17 @@ type PolicyOption struct {
 	TPSLimit float64 `json:"tps_limit,omitempty"`
 	// 每秒 API 请求爆发上限
 	TPSLimitBurst int `json:"tps_limit_burst,omitempty"`
+}
+
+func GetPolicyByID(ID interface{}) (Policy, error) {
+	cacheKey := "policy_" + strconv.Itoa(int(ID.(uint)))
+	if policy, ok := cache.Get(cacheKey); ok {
+		return policy.(Policy), nil
+	}
+	var policy Policy
+	result := Db.First(&policy, ID)
+	if result.Error == nil {
+		_ = cache.Set(cacheKey, policy, -1)
+	}
+	return policy, result.Error
 }

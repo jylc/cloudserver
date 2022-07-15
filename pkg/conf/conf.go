@@ -25,6 +25,7 @@ type systemConf struct {
 	Port          string `ini:"port"`
 	SessionSecret string `ini:"secret"`
 	HashIDSalt    string `ini:"hashidsalt"`
+	Role          string `ini:"role"`
 }
 
 type redisConf struct {

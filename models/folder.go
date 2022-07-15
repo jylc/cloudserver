@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"path"
+)
 
 type Folder struct {
 	gorm.Model
@@ -23,5 +26,17 @@ func (folder *Folder) Create() (uint, error) {
 func GetFolderByIDs(ids []uint, uid uint) ([]Folder, error) {
 	var folders []Folder
 	result := Db.Where("id in (?) AND owner_id = ?", ids, uid).Find(&folders)
+	return folders, result.Error
+}
+
+func (folder *Folder) GetChildFolder() ([]Folder, error) {
+	var folders []Folder
+	result := Db.Where("parent_id = ?", folder.ID).Find(&folders)
+
+	if result.Error == nil {
+		for i := 0; i < len(folders); i++ {
+			folders[i].Position = path.Join(folder.Position, folder.Name)
+		}
+	}
 	return folders, result.Error
 }

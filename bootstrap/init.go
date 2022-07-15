@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/auth"
+	"github.com/jylc/cloudserver/pkg/cache"
 	"github.com/jylc/cloudserver/pkg/conf"
 	"github.com/jylc/cloudserver/pkg/email"
 	"io/fs"
@@ -25,6 +26,11 @@ func Init(path string, staticFile fs.FS) {
 			"both",
 			func() {
 				models.Init()
+			},
+		}, {
+			"both",
+			func() {
+				cache.Init()
 			},
 		},
 		{

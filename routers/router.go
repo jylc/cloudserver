@@ -75,6 +75,9 @@ func RouterInit() *gin.Engine {
 			file := version.Group("file")
 			{
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
+				file.GET("source/:id/:name", controllers.AnonymousPermLink)
+				file.GET("download/:id", controllers.Download)
+				file.GET("archive/:sessionID/archive.zip", controllers.DownloadArchive)
 			}
 		}
 	}

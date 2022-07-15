@@ -1,6 +1,9 @@
 package serializer
 
-import "github.com/gin-gonic/gin"
+import (
+	"errors"
+	"github.com/gin-gonic/gin"
+)
 
 type AppError struct {
 	Code     int
@@ -24,6 +27,8 @@ const (
 	CodeNotFound = 404
 	// CodeSignExpired 签名过期
 	CodeSignExpired = 40005
+	// CodePolicyNotAllowed 当前存储策略不允许
+	CodePolicyNotAllowed = 40006
 	// CodeUserBaned 用户不活跃
 	CodeUserBaned = 40017
 	// CodeUserNotActivated 用户不活跃
@@ -68,6 +73,8 @@ const (
 	CodeIOFailed = 50004
 	// CodeInternalSetting 内部设置参数错误
 	CodeInternalSetting = 50005
+	// CodeCacheOperation 缓存操作失败
+	CodeCacheOperation = 50006
 	// CodeNotSet 未定错误，后续尝试从error中获取
 	CodeNotSet = -1
 )
@@ -108,5 +115,13 @@ func NewError(code int, msg string, err error) AppError {
 		Code:     code,
 		Msg:      msg,
 		RawError: err,
+	}
+}
+
+func NewErrorFromResponse(resp *Response) AppError {
+	return AppError{
+		Code:     resp.Code,
+		Msg:      resp.Msg,
+		RawError: errors.New(resp.Error),
 	}
 }
