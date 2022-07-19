@@ -65,3 +65,7 @@ func (share *Share) SourceFile() *File {
 	}
 	return &share.File
 }
+
+func DeleteShareBySourceIDs(sources []uint, isDir bool) error {
+	return Db.Where("source_id in (?) and is_dir = ?", sources, isDir).Delete(&Share{}).Error
+}

@@ -157,3 +157,9 @@ func (resp *Response) DecodeResponse() (*serializer.Response, error) {
 	}
 	return &res, nil
 }
+
+func BlackHole(r io.Reader) {
+	if !models.IsTrueVal(models.GetSettingByName("reset_after_upload_failed")) {
+		io.Copy(ioutil.Discard, r)
+	}
+}

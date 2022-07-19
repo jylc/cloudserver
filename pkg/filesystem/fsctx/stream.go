@@ -35,7 +35,7 @@ type FileHeader interface {
 	io.Seeker
 	Info() *UploadTaskInfo
 	SetSize(uint642 uint64)
-	SetMode(fileModel interface{})
+	SetModel(fileModel interface{})
 	Seekable() bool
 }
 
@@ -54,6 +54,13 @@ type FileStream struct {
 	AppendStart     uint64
 	Model           interface{}
 	Src             string
+}
+
+func (file *FileStream) Close() error {
+	if file.File != nil {
+		return file.File.Close()
+	}
+	return nil
 }
 
 func (file *FileStream) Read(p []byte) (n int, err error) {

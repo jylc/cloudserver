@@ -1,0 +1,254 @@
+package cluster
+
+import (
+	"context"
+	"encoding/json"
+	"github.com/gofrs/uuid"
+	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/aria2/common"
+	"github.com/jylc/cloudserver/pkg/aria2/rpc"
+	"github.com/jylc/cloudserver/pkg/auth"
+	"github.com/jylc/cloudserver/pkg/mq"
+	"github.com/jylc/cloudserver/pkg/serializer"
+	"github.com/sirupsen/logrus"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+)
+
+const (
+	deleteTempFileDuration = 60 * time.Second
+	statusRetryDuration    = 10 * time.Second
+)
+
+type MasterNode struct {
+	Model    *models.Node
+	aria2RPC rpcService
+	lock     sync.RWMutex
+}
+
+func (node *MasterNode) Init(nodeModel *models.Node) {
+	node.lock.Lock()
+	node.Model = nodeModel
+	node.aria2RPC.parent = node
+	node.aria2RPC.retryDuration = statusRetryDuration
+	node.aria2RPC.deletePaddingDuration = deleteTempFileDuration
+	node.lock.Unlock()
+
+	node.lock.RLock()
+	if node.Model.Aria2Enabled {
+		node.lock.RUnlock()
+		node.aria2RPC.Init()
+		return
+	}
+	node.lock.RUnlock()
+}
+
+func (node *MasterNode) IsFeatureEnabled(feature string) bool {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	switch feature {
+	case "aria2":
+		return node.Model.Aria2Enabled
+	default:
+		return false
+	}
+}
+
+func (node *MasterNode) SubscribeStatusChange(callback func(isActive bool, id uint)) {
+}
+
+func (node *MasterNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingResp, error) {
+	return &serializer.NodePingResp{}, nil
+}
+
+func (node *MasterNode) IsActive() bool {
+	return true
+}
+
+func (node *MasterNode) GetAria2Instance() common.Aria2 {
+	node.lock.RLock()
+	if !node.Model.Aria2Enabled {
+		node.lock.RUnlock()
+		return &common.DummyAria2{}
+	}
+
+	if !node.aria2RPC.Initialized {
+		node.lock.RUnlock()
+		node.aria2RPC.Init()
+		return &common.DummyAria2{}
+	}
+	defer node.lock.RUnlock()
+	return &node.aria2RPC
+}
+
+func (node *MasterNode) ID() uint {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return node.Model.ID
+}
+
+func (node *MasterNode) Kill() {
+	if node.aria2RPC.Caller != nil {
+		node.aria2RPC.Caller.Close()
+	}
+}
+
+func (node *MasterNode) IsMaster() bool {
+	return true
+}
+
+func (node *MasterNode) MasterAuthInstance() auth.Auth {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return auth.HMACAuth{SecretKey: []byte(node.Model.MasterKey)}
+}
+
+func (node *MasterNode) SlaveAuthInstance() auth.Auth {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return auth.HMACAuth{SecretKey: []byte(node.Model.SlaveKey)}
+}
+
+func (node *MasterNode) DBModel() *models.Node {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return node.Model
+}
+
+type rpcService struct {
+	Caller      rpc.Client
+	Initialized bool
+
+	retryDuration         time.Duration
+	deletePaddingDuration time.Duration
+	parent                *MasterNode
+	options               *clientOptions
+}
+
+func (r *rpcService) Init() error {
+	r.parent.lock.Lock()
+	defer r.parent.lock.Unlock()
+	r.Initialized = false
+
+	if r.Caller != nil {
+		r.Caller.Close()
+	}
+
+	server, err := url.Parse(r.parent.Model.Aria2OptionsSerialized.Server)
+	if err != nil {
+		logrus.Warningf("cannot parse host Aria2 RPC server address, %s", err)
+		return err
+	}
+
+	server.Path = "/jsonrpc"
+
+	var globalOptions map[string]interface{}
+	if r.parent.Model.Aria2OptionsSerialized.Options != "" {
+		err = json.Unmarshal([]byte(r.parent.Model.Aria2OptionsSerialized.Options), globalOptions)
+		if err != nil {
+			logrus.Warningf("cannot parse host Aria2 config, %s", err)
+			return err
+		}
+	}
+
+	r.options = &clientOptions{
+		Options: globalOptions,
+	}
+
+	timeout := r.parent.Model.Aria2OptionsSerialized.Timeout
+	caller, err := rpc.New(context.Background(), server.String(), r.parent.Model.Aria2OptionsSerialized.Token, time.Duration(timeout)*time.Second, mq.GlobalMQ)
+	r.Caller = caller
+	r.Initialized = err == nil
+	return err
+}
+
+func (r *rpcService) CreateTask(task *models.Download, groupOptions map[string]interface{}) (string, error) {
+	r.parent.lock.RLock()
+
+	guid, _ := uuid.NewV4()
+	path := filepath.Join(
+		r.parent.Model.Aria2OptionsSerialized.TempPath,
+		"aria2",
+		guid.String())
+	r.parent.lock.RUnlock()
+
+	options := map[string]interface{}{
+		"dir": path,
+	}
+
+	for k, v := range r.options.Options {
+		options[k] = v
+	}
+
+	for k, v := range groupOptions {
+		options[k] = v
+	}
+
+	gid, err := r.Caller.AddURI(task.Source, options)
+	if err != nil || gid == "" {
+		return "", err
+	}
+	return gid, nil
+}
+
+func (r *rpcService) Status(task *models.Download) (rpc.StatusInfo, error) {
+	res, err := r.Caller.TellStatus(task.GID)
+	if err != nil {
+		logrus.Debugf("unable to get offline download status, %s, try again later", err)
+		time.Sleep(r.retryDuration)
+		res, err = r.Caller.TellStatus(task.GID)
+	}
+	return res, err
+}
+
+func (r *rpcService) Cancel(task *models.Download) error {
+	_, err := r.Caller.Remove(task.GID)
+	if err != nil {
+		logrus.Warningf("unable to cancel offline download task [%s], %s", task.GID, err)
+	}
+	return err
+}
+
+func (r *rpcService) Select(task *models.Download, files []int) error {
+	var selected = make([]string, len(files))
+	for i := 0; i < len(files); i++ {
+		selected[i] = strconv.Itoa(files[i])
+	}
+	_, err := r.Caller.ChangeOption(task.GID, map[string]interface{}{"select-file": strings.Join(selected, ",")})
+	return err
+}
+
+func (r *rpcService) GetConfig() models.Aria2Option {
+	r.parent.lock.RLock()
+	defer r.parent.lock.RUnlock()
+
+	return r.parent.Model.Aria2OptionsSerialized
+}
+
+func (r *rpcService) DeleteTempFile(task *models.Download) error {
+	r.parent.lock.RLock()
+	defer r.parent.lock.RUnlock()
+
+	go func(d time.Duration, src string) {
+		time.Sleep(d)
+		err := os.RemoveAll(src)
+		if err != nil {
+			logrus.Warningf("unable to delete offline download temporary directory [%s], %s", src, err)
+		}
+	}(r.deletePaddingDuration, task.Parent)
+	return nil
+}
+
+type clientOptions struct {
+	Options map[string]interface{}
+}

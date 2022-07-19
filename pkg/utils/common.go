@@ -22,3 +22,12 @@ func Replace(old string, r map[string]string) (new string) {
 	}
 	return
 }
+
+func ContainsString(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}

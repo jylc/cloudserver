@@ -36,3 +36,8 @@ var Cc = &corsConfig{
 	AllowOriginFunc:  nil,
 	MaxAge:           12 * time.Hour,
 }
+
+var Slavec = &slave{
+	CallbackTimeout: 20,
+	SignatureTTL:    60,
+}

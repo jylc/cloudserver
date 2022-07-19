@@ -1,6 +1,7 @@
 package serializer
 
 import (
+	"encoding/gob"
 	"github.com/jylc/cloudserver/models"
 	"time"
 )
@@ -34,4 +35,16 @@ type UploadCredential struct {
 	KeyTime     string   `json:"keyTime,omitempty"`
 	Policy      string   `json:"policy,omitempty"`
 	CompleteURL string   `json:"completeURL,omitempty"`
+}
+
+type UploadCallback struct {
+	PicInfo string `json:"pic_info"`
+}
+
+type GeneralUploadCallbackFailed struct {
+	Error string `json:"error"`
+}
+
+func init() {
+	gob.Register(UploadSession{})
 }

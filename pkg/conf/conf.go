@@ -50,6 +50,12 @@ type corsConfig struct {
 	MaxAge           time.Duration
 }
 
+type slave struct {
+	Secret          string `validate:"omitempty,gte=64"`
+	CallbackTimeout int    `validate:"omitempty,gte=1"`
+	SignatureTTL    int    `validate:"omitempty,gte=1"`
+}
+
 var cfg *ini.File
 
 var dC = &defaultConfig{

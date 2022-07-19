@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/cache"
@@ -23,6 +24,9 @@ type DownloadService struct {
 
 type ArchiveService struct {
 	ID string `uri:"sessionID" binding:"required"`
+}
+
+type FileIDService struct {
 }
 
 func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Context) serializer.Response {
@@ -129,6 +133,54 @@ func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Cont
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "unable to create compressed file", err)
 	}
+	return serializer.Response{
+		Code: 0,
+	}
+}
+
+func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	objectID, _ := c.Get("object_id")
+
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(*models.File); ok {
+		fs.SetTargetFile(&[]models.File{*file})
+		objectID = uint(0)
+	}
+
+	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*models.Folder); ok {
+		fs.Root = folder
+		path := ctx.Value(fsctx.PathCtx).(string)
+		err := fs.ResetFileIfNotExist(ctx, path)
+		if err != nil {
+			return serializer.Err(serializer.CodeNotFound, err.Error(), err)
+		}
+		objectID = uint(0)
+	}
+
+	resp, err := fs.Preview(ctx, objectID.(uint), isText)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	if resp.Redirect {
+		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", resp.MaxAge))
+		return serializer.Response{
+			Code: -301,
+			Data: resp.URL,
+		}
+	}
+	defer resp.Content.Close()
+
+	if isText {
+		c.Header("Cache-Control", "no-cache")
+	}
+
+	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, resp.Content)
 	return serializer.Response{
 		Code: 0,
 	}

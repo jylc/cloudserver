@@ -6,6 +6,7 @@ import (
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/pkg/conf"
+	"github.com/jylc/cloudserver/pkg/serializer"
 	"github.com/jylc/cloudserver/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -26,5 +27,16 @@ func CSRFInit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		utils.SetSession(c, map[string]interface{}{"CSRF": true})
 		c.Next()
+	}
+}
+
+func CSRFCheck() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if check, ok := utils.GetSession(c, "CSRF").(bool); ok && check {
+			c.Next()
+			return
+		}
+		c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "illegal source", nil))
+		c.Abort()
 	}
 }

@@ -128,3 +128,20 @@ func GetUserByID(ID interface{}) (User, error) {
 func (user *User) SetStatus(status int) {
 	Db.Model(&user).Update("status", status)
 }
+
+func (user *User) ChangeStorage(tx *gorm.DB, operator string, size uint64) error {
+	return tx.Model(user).Update("storage", gorm.Expr("storage"+operator+" ?", size)).Error
+}
+func (user *User) GetRemainingCapacity() uint64 {
+	total := user.Group.MaxStorage
+	if total <= user.Storage {
+		return 0
+	}
+	return total - user.Storage
+}
+
+func (user *User) Root() (*Folder, error) {
+	var folder Folder
+	err := Db.Where("parent_id is NULL AND owner_id = ?", user.ID).First(&folder).Error
+	return &folder, err
+}

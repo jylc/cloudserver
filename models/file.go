@@ -1,8 +1,11 @@
 package models
 
 import (
+	"errors"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"path"
+	"time"
 )
 
 type File struct {
@@ -55,4 +58,152 @@ func (folder *Folder) GetChildFiles() ([]File, error) {
 	}
 
 	return files, result.Error
+}
+
+func (file *File) UpdateSize(value uint64) error {
+	tx := Db.Begin()
+	var sizeDelta uint64
+	operator := "+"
+	user := User{}
+	user.ID = file.UserID
+	if value > file.Size {
+		sizeDelta = value - file.Size
+	} else {
+		operator = "-"
+		sizeDelta = file.Size - value
+	}
+
+	if res := tx.Model(&file).Where("size = ?", file.Size).Set("gorm:association_autoupdate", false).Update("size", value); res.Error != nil {
+		tx.Rollback()
+		return res.Error
+	}
+	if err := user.ChangeStorage(tx, operator, sizeDelta); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	file.Size = value
+	return tx.Commit().Error
+}
+
+func (file *File) PopChunkToFile(lastModified *time.Time, picInfo string) error {
+	file.UploadSessionID = nil
+	if lastModified != nil {
+		file.UpdatedAt = *lastModified
+	}
+	return Db.Model(file).UpdateColumns(map[string]interface{}{
+		"upload_session_id": file.UploadSessionID,
+		"updated_at":        file.UpdatedAt,
+		"pic_info":          picInfo,
+	}).Error
+}
+
+func GetFilesByUploadSession(sessionID string, uid uint) (*File, error) {
+	file := File{}
+	result := Db.Where("user_id = ? and upload_session_id = ?", uid, sessionID).Find(&file)
+	return &file, result.Error
+}
+
+func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
+	filteredFiles := make([]File, 0)
+
+	var filesWithSoftLinks []File
+	tx := Db
+	for _, value := range files {
+		tx = tx.Or("source_name = ? and policy_id = ? and id != ?", value.SourceName, value.PolicyID, value.ID)
+	}
+	result := tx.Find(&filesWithSoftLinks)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if len(filesWithSoftLinks) == 0 {
+		filteredFiles = files
+	} else {
+		for i := 0; i < len(files); i++ {
+			finder := false
+			for _, value := range filesWithSoftLinks {
+				if value.PolicyID == files[i].PolicyID && value.SourceName == files[i].SourceName {
+					finder = true
+					break
+				}
+			}
+
+			if !finder {
+				filteredFiles = append(filteredFiles, files[i])
+			}
+		}
+	}
+
+	return filteredFiles, nil
+}
+
+func DeleteFiles(files []*File, uid uint) error {
+	tx := Db.Begin()
+	user := &User{}
+	user.ID = uid
+	var size uint64
+	for _, file := range files {
+		if file.UserID != uid {
+			tx.Rollback()
+			return errors.New("user id not consistent")
+		}
+
+		result := tx.Unscoped().Where("size = ?", file.Size).Delete(file)
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+
+		if result.RowsAffected == 0 {
+			tx.Rollback()
+			return errors.New("file size is dirty")
+		}
+
+		size += file.Size
+	}
+	if err := user.ChangeStorage(tx, "-", size); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit().Error
+}
+
+func GetChildFilesOfFolders(folders *[]Folder) ([]File, error) {
+	folderIDs := make([]uint, 0, len(*folders))
+	for _, value := range *folders {
+		folderIDs = append(folderIDs, value.ID)
+	}
+
+	var files []File
+	result := Db.Where("folder_id in (?)", folderIDs).Find(&files)
+	return files, result.Error
+}
+
+func (file *File) Create() error {
+	tx := Db.Begin()
+	if err := tx.Create(file).Error; err != nil {
+		logrus.Warningf("Unable to insert file record, %s", err)
+		tx.Rollback()
+		return err
+	}
+
+	user := &User{}
+	user.ID = file.UserID
+	if err := user.ChangeStorage(tx, "+", file.Size); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
+}
+
+func (folder *Folder) GetChildFile(name string) (*File, error) {
+	var file File
+	result := Db.Where("folder_id = ? AND name = ?", folder.ID, name).Find(&file)
+
+	if result.Error == nil {
+		file.Position = path.Join(folder.Position, folder.Name)
+	}
+	return &file, result.Error
 }

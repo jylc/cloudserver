@@ -159,3 +159,11 @@ func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
 	fs, err := NewFileSystem(user.(*models.User))
 	return fs, err
 }
+
+func (fs *FileSystem) SetTargetDir(dirs *[]models.Folder) {
+	if len(fs.DirTarget) == 0 {
+		fs.DirTarget = *dirs
+	} else {
+		fs.DirTarget = append(fs.DirTarget, *dirs...)
+	}
+}

@@ -21,14 +21,28 @@ func (err AppError) Error() string {
 }
 
 const (
+	// CodeNotFullySuccess 未完全成功
+	CodeNotFullySuccess = 203
+	// CodeCheckLogin 未登录
+	CodeCheckLogin = 401
 	// CodeNoPermissionErr 未授权访问
 	CodeNoPermissionErr = 403
 	// CodeNotFound 资源未找到
 	CodeNotFound = 404
+	// CodeConflict 资源冲突
+	CodeConflict = 409
+	// CodeUploadFailed 上传出错
+	CodeUploadFailed = 40002
 	// CodeSignExpired 签名过期
 	CodeSignExpired = 40005
 	// CodePolicyNotAllowed 当前存储策略不允许
 	CodePolicyNotAllowed = 40006
+	// CodeMasterNotFound 主机节点未注册
+	CodeMasterNotFound = 40009
+	// CodeUploadSessionExpired 上传会话已过期
+	CodeUploadSessionExpired = 400011
+	// CodeInvalidContentLength 无效的正文长度
+	CodeInvalidContentLength = 400013
 	// CodeUserBaned 用户不活跃
 	CodeUserBaned = 40017
 	// CodeUserNotActivated 用户不活跃
@@ -75,6 +89,8 @@ const (
 	CodeInternalSetting = 50005
 	// CodeCacheOperation 缓存操作失败
 	CodeCacheOperation = 50006
+	// CodeCallbackError 回调失败
+	CodeCallbackError = 50007
 	// CodeNotSet 未定错误，后续尝试从error中获取
 	CodeNotSet = -1
 )
