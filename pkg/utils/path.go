@@ -26,3 +26,10 @@ func SplitPath(path string) []string {
 	pathSplit[0] = "/"
 	return pathSplit
 }
+
+func RemoveSlash(path string) string {
+	if len(path) > 1 {
+		return strings.TrimSuffix(path, "/")
+	}
+	return path
+}

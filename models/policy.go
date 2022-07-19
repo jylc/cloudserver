@@ -169,3 +169,7 @@ func (policy *Policy) CleanCache() {
 func (policy *Policy) CanStructureBeListed() bool {
 	return policy.Type != "local" && policy.Type != "remote"
 }
+
+func (policy *Policy) IsDirectlyPreview() bool {
+	return policy.Type == "local"
+}

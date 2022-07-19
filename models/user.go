@@ -145,3 +145,12 @@ func (user *User) Root() (*Folder, error) {
 	err := Db.Where("parent_id is NULL AND owner_id = ?", user.ID).First(&folder).Error
 	return &folder, err
 }
+
+func (user *User) IncreaseStorageWithoutCheck(size uint64) {
+	if size == 0 {
+		return
+	}
+	user.Storage += size
+	Db.Model(user).Update("storage", gorm.Expr("storage + ?", size))
+
+}

@@ -41,3 +41,18 @@ func (fs *FileSystem) ValidateLegalName(ctx context.Context, name string) bool {
 
 	return true
 }
+
+func (fs *FileSystem) ValidateExtension(ctx context.Context, fileName string) bool {
+	if len(fs.Policy.OptionsSerialized.FileType) == 0 {
+		return true
+	}
+
+	return IsInExtensionList(fs.Policy.OptionsSerialized.FileType, fileName)
+}
+
+func (fs *FileSystem) ValidateFileSize(ctx context.Context, size uint64) bool {
+	if fs.Policy.MaxSize == 0 {
+		return true
+	}
+	return size <= fs.Policy.MaxSize
+}

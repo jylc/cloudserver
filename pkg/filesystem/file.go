@@ -149,3 +149,47 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *models.Folder, file f
 	fs.User.Storage += newFile.Size
 	return &newFile, err
 }
+
+func (fs *FileSystem) ResetFileIfNotExist(ctx context.Context, path string) error {
+	if len(fs.FileTarget) == 0 {
+		exist, file := fs.IsFileExist(path)
+		if !exist {
+			return ErrObjectNotExist
+		}
+		fs.FileTarget = []models.File{*file}
+	}
+	return fs.resetPolicyToFirstFile(ctx)
+}
+
+func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*response.ContentResponse, error) {
+	err := fs.resetFileIDIfNotExist(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	sizeLimit := models.GetIntSetting("maxEditSize", 2<<20)
+	if isText && fs.FileTarget[0].Size > uint64(sizeLimit) {
+		return nil, ErrFileSizeTooBig
+	}
+
+	if isText || fs.Policy.IsDirectlyPreview() {
+		resp, err := fs.GetDownloadContent(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return &response.ContentResponse{
+			Redirect: false,
+			Content:  resp,
+		}, nil
+	}
+
+	ttl := models.GetIntSetting("preview_timeout", 60)
+	previewURL, err := fs.SignURL(ctx, &fs.FileTarget[0], int64(ttl), false)
+	if err != nil {
+		return nil, err
+	}
+	return &response.ContentResponse{
+		Redirect: true,
+		URL:      previewURL,
+		MaxAge:   ttl,
+	}, nil
+}

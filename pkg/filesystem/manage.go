@@ -261,3 +261,84 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 	}
 	return objects
 }
+
+func (fs *FileSystem) Rename(ctx context.Context, dirs, files []uint, new string) (err error) {
+	if !fs.ValidateLegalName(ctx, new) || (len(files) > 0 && !fs.ValidateExtension(ctx, new)) {
+		return ErrIllegalObjectName
+	}
+
+	if len(files) > 0 {
+		fileObject, err := models.GetFilesByIDs([]uint{files[0]}, fs.User.ID)
+		if err != nil || len(fileObject) == 0 {
+			return ErrPathNotExist
+		}
+
+		err = fileObject[0].Rename(new)
+		if err != nil {
+			return ErrFileExisted
+		}
+		return nil
+	}
+
+	if len(dirs) > 0 {
+		folderObject, err := models.GetFolderByIDs([]uint{dirs[0]}, fs.User.ID)
+		if err != nil || len(folderObject) == 0 {
+			return ErrPathNotExist
+		}
+		err = folderObject[0].Rename(new)
+		if err != nil {
+			return ErrFileExisted
+		}
+		return nil
+	}
+	return ErrPathNotExist
+}
+
+func (fs *FileSystem) Copy(ctx context.Context, dirs, files []uint, src, dst string) error {
+	isDstExist, dstFolder := fs.IsPathExist(dst)
+	isSrcExist, srcFolder := fs.IsPathExist(src)
+
+	if !isDstExist || !isSrcExist {
+		return ErrPathNotExist
+	}
+
+	var newUsedStorage uint64
+
+	if len(dirs) > 0 {
+		subFileSizes, err := srcFolder.CopyFolderTo(dirs[0], dstFolder)
+		if err != nil {
+			return serializer.NewError(serializer.CodeDBError, "The operation failed, and there may be duplicate name conflicts", err)
+		}
+		newUsedStorage += subFileSizes
+	}
+	if len(files) > 0 {
+		subFileSizes, err := srcFolder.MoveOrCopyFileTo(files, dstFolder, true)
+		if err != nil {
+			return serializer.NewError(serializer.CodeDBError, "The operation failed, and there may be duplicate name conflicts", err)
+		}
+		newUsedStorage += subFileSizes
+	}
+
+	fs.User.IncreaseStorageWithoutCheck(newUsedStorage)
+	return nil
+}
+
+func (fs *FileSystem) Move(ctx context.Context, dirs, files []uint, src, dst string) error {
+	isDstExist, dstFolder := fs.IsPathExist(dst)
+	isSrcExist, srcFolder := fs.IsPathExist(src)
+
+	if !isDstExist || !isSrcExist {
+		return ErrPathNotExist
+	}
+
+	err := srcFolder.MoveFolderTo(dirs, dstFolder)
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "The operation failed, and there may be duplicate name conflicts", err)
+	}
+	_, err = srcFolder.MoveOrCopyFileTo(dirs, dstFolder, false)
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "The operation failed, and there may be duplicate name conflicts", err)
+	}
+
+	return err
+}

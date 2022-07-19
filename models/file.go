@@ -25,6 +25,26 @@ type File struct {
 	MetadataSerialized map[string]string `gorm:"-"`
 }
 
+func (file *File) GetSize() uint64 {
+	return file.Size
+}
+
+func (file *File) GetName() string {
+	return file.Name
+}
+
+func (file *File) ModTime() time.Time {
+	return file.UpdatedAt
+}
+
+func (file *File) IsDir() bool {
+	return false
+}
+
+func (file *File) GetPosition() string {
+	return file.Position
+}
+
 func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
 	return GetFilesByIDsFromTX(Db, ids, uid)
 }
@@ -206,4 +226,20 @@ func (folder *Folder) GetChildFile(name string) (*File, error) {
 		file.Position = path.Join(folder.Position, folder.Name)
 	}
 	return &file, result.Error
+}
+
+func (file *File) UpdateSourceName(value string) error {
+	return Db.Model(&file).Set("gorm:association_autoupdate", false).Update("source_name", value).Error
+}
+
+func (folder *Folder) Rename(new string) error {
+	return Db.Model(&folder).UpdateColumn("name", new).Error
+}
+
+func (file *File) Rename(new string) error {
+	return Db.Model(&file).UpdateColumn("name", new).Error
+}
+
+func (file *File) CanCopy() bool {
+	return file.UploadSessionID == nil
 }

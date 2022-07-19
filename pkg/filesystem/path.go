@@ -3,6 +3,7 @@ package filesystem
 import (
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/utils"
+	"path"
 )
 
 func (fs *FileSystem) IsPathExist(path string) (bool, *models.Folder) {
@@ -39,5 +40,18 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *models.Folder) {
 
 func (fs *FileSystem) IsChildFileExist(folder *models.Folder, name string) (bool, *models.File) {
 	file, err := folder.GetChildFile(name)
+	return err == nil, file
+}
+
+func (fs *FileSystem) IsFileExist(fullPath string) (bool, *models.File) {
+	basePath := path.Dir(fullPath)
+	fileName := path.Base(fullPath)
+
+	exist, parent := fs.IsPathExist(basePath)
+	if !exist {
+		return false, nil
+	}
+
+	file, err := parent.GetChildFile(fileName)
 	return err == nil, file
 }

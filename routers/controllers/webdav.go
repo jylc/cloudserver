@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/filesystem"
+	"github.com/jylc/cloudserver/pkg/webdav"
+	"github.com/jylc/cloudserver/service/setting"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/webdav"
 	"sync"
 )
 
@@ -14,7 +16,7 @@ func init() {
 	handler = &webdav.Handler{
 		Prefix:     "/dav",
 		LockSystem: make(map[uint]webdav.LockSystem),
-		Logger:     &sync.Mutex{},
+		Mutex:      &sync.Mutex{},
 	}
 }
 

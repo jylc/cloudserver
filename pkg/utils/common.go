@@ -31,3 +31,12 @@ func ContainsString(s []string, e string) bool {
 	}
 	return false
 }
+
+func ContainsUint(s []uint, e uint) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
