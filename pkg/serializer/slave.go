@@ -1,6 +1,11 @@
 package serializer
 
-import "github.com/jylc/cloudserver/models"
+import (
+	"crypto/sha1"
+	"encoding/gob"
+	"fmt"
+	"github.com/jylc/cloudserver/models"
+)
 
 type NodePingReq struct {
 	SiteURL       string       `json:"site_url"`
@@ -11,4 +16,30 @@ type NodePingReq struct {
 }
 
 type NodePingResp struct {
+}
+
+type SlaveTransferReq struct {
+	Src    string         `json:"src"`
+	Dst    string         `json:"dst"`
+	Policy *models.Policy `json:"policy"`
+}
+
+func (s *SlaveTransferReq) Hash(id string) string {
+	h := sha1.New()
+	h.Write([]byte(fmt.Sprintf("transfer-%s-%s-%s-%d", id, s.Src, s.Dst, s.Policy.ID)))
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
+}
+
+const (
+	SlaveTransferSuccess = "success"
+	SlaveTransferFailed  = "failed"
+)
+
+type SlaveTransferResult struct {
+	Error string
+}
+
+func init() {
+	gob.Register(SlaveTransferResult{})
 }

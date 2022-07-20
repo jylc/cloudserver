@@ -193,3 +193,25 @@ func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*respo
 		MaxAge:   ttl,
 	}, nil
 }
+
+func (fs *FileSystem) GetDownloadURL(ctx context.Context, id uint, timeout string) (string, error) {
+	err := fs.resetFileIDIfNotExist(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	fileTarget := &fs.FileTarget[0]
+
+	ttl := models.GetIntSetting(timeout, 60)
+	source, err := fs.SignURL(
+		ctx,
+		fileTarget,
+		int64(ttl),
+		true,
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	return source, nil
+}

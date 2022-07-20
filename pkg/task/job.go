@@ -2,6 +2,7 @@ package task
 
 import (
 	"github.com/jylc/cloudserver/models"
+	"github.com/sirupsen/logrus"
 )
 
 // 任务类型
@@ -76,4 +77,38 @@ func Record(job Job) (*models.Task, error) {
 
 	_, err := record.Create()
 	return &record, err
+}
+
+func Resume(p Pool) {
+	tasks := models.GetTasksByStatus(Queued, Processing)
+	if len(tasks) == 0 {
+		return
+	}
+	logrus.Infof("Recover%d outstanding tasks from the database", len(tasks))
+
+	for i := 0; i < len(tasks); i++ {
+		job, err := GetJobFromModel(&tasks[i])
+		if err != nil {
+			logrus.Warningf("Unable to resume task, %s", err)
+			continue
+		}
+		if job != nil {
+			p.Submit(job)
+		}
+	}
+}
+
+func GetJobFromModel(task *models.Task) (Job, error) {
+	switch task.Type {
+	case CompressTaskType:
+		return NewCompressTaskFromModel(task)
+	case DecompressTaskType:
+		return NewDecompressTaskFromModel(task)
+	case TransferTaskType:
+		return NewTransferTaskFromModel(task)
+	case ImportTaskType:
+		return NewImportTaskFromModel(task)
+	default:
+		return nil, ErrUnknownTaskType
+	}
 }

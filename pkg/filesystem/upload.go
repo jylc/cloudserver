@@ -6,7 +6,9 @@ import (
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/filesystem/fsctx"
 	"github.com/jylc/cloudserver/pkg/request"
+	"github.com/jylc/cloudserver/pkg/utils"
 	"github.com/sirupsen/logrus"
+	"os"
 	"path"
 )
 
@@ -94,4 +96,51 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file fsctx.
 			}
 		}
 	}
+}
+
+func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStream, resetPolicy bool) error {
+	if resetPolicy {
+		fs.Policy = &fs.User.Policy
+		err := fs.DispatchHandler()
+		if err != nil {
+			return err
+		}
+	}
+	fs.Lock.Lock()
+	if fs.Hooks == nil {
+		fs.Use("BeforeUpload", HookValidateFile)
+		fs.Use("BeforeUpload", HookValidateCapacity)
+		fs.Use("AfterUploadCanceled", HookDeleteTempFile)
+		fs.Use("AfterUpload", GenericAfterUpload)
+		fs.Use("AfterUpload", HookGenerateThumb)
+		fs.Use("AfterValidateFailed", HookDeleteTempFile)
+	}
+
+	fs.Lock.Unlock()
+
+	return fs.Upload(ctx, file)
+}
+
+func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, mode fsctx.WriteMode) error {
+	file, err := os.Open(utils.RelativePath(src))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fi, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	size := fi.Size()
+
+	return fs.UploadFromStream(ctx, &fsctx.FileStream{
+		File:        file,
+		Seeker:      file,
+		Size:        uint64(size),
+		Name:        path.Base(dst),
+		VirtualPath: path.Dir(dst),
+		Mode:        mode,
+	}, true)
 }

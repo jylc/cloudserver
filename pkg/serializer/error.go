@@ -43,6 +43,8 @@ const (
 	CodeUploadSessionExpired = 400011
 	// CodeInvalidContentLength 无效的正文长度
 	CodeInvalidContentLength = 400013
+	// CodeBatchAria2Size 超出最大 Aria2 任务数量限制
+	CodeBatchAria2Size = 40015
 	// CodeUserBaned 用户不活跃
 	CodeUserBaned = 40017
 	// CodeUserNotActivated 用户不活跃

@@ -185,3 +185,22 @@ func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context
 		Code: 0,
 	}
 }
+
+func (service *FileIDService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	objectID, _ := c.Get("object_id")
+
+	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "download_timeout")
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+	return serializer.Response{
+		Code: 0,
+		Data: downloadURL,
+	}
+}

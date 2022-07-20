@@ -9,6 +9,7 @@ import (
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/auth"
 	"github.com/jylc/cloudserver/pkg/cache"
+	"github.com/jylc/cloudserver/pkg/filesystem/driver/cos"
 	"github.com/jylc/cloudserver/pkg/filesystem/driver/onedrive"
 	"github.com/jylc/cloudserver/pkg/request"
 	"github.com/jylc/cloudserver/pkg/serializer"
@@ -158,7 +159,6 @@ func (service *PolicyService) AddSCF() serializer.Response {
 	if err != nil {
 		return serializer.Err(serializer.CodeNotFound, "Storage policy does not exist", nil)
 	}
-
 	if err := cos.CreateSCF(&policy, service.Region); err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "云函数创建失败", err)
 	}

@@ -168,3 +168,20 @@ func (job *ImportTask) SetErrorMsg(msg string, err error) {
 	}
 	job.SetError(jobErr)
 }
+
+func NewImportTaskFromModel(task *models.Task) (Job, error) {
+	user, err := models.GetActivateUserByID(task.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	newTask := &ImportTask{
+		User:      &user,
+		TaskModel: task,
+	}
+	err = json.Unmarshal([]byte(task.Props), &newTask.TaskProps)
+	if err != nil {
+		return nil, err
+	}
+	return newTask, nil
+}

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"context"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/gin-gonic/gin"
+	"github.com/jylc/cloudserver/service/aria2"
 	"github.com/jylc/cloudserver/service/explorer"
 )
 
@@ -31,7 +33,7 @@ func AddAria2Torrent(c *gin.Context) {
 	defer cancel()
 
 	var service explorer.FileIDService
-	if err := c.ShouldBindUri(&servce); err == nil {
+	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.CreateDownloadSession(ctx, c)
 		if res.Code != 0 {
 			c.JSON(200, res)

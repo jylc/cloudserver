@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -32,4 +33,15 @@ func RemoveSlash(path string) string {
 		return strings.TrimSuffix(path, "/")
 	}
 	return path
+}
+
+func FormSlash(old string) string {
+	return path.Clean(strings.ReplaceAll(old, "\\", "/"))
+}
+
+func FillSlash(path string) string {
+	if path == "/" {
+		return path
+	}
+	return path + "/"
 }

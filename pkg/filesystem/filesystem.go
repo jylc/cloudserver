@@ -5,9 +5,11 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/cluster"
 	"github.com/jylc/cloudserver/pkg/filesystem/driver"
 	"github.com/jylc/cloudserver/pkg/filesystem/driver/local"
 	"github.com/jylc/cloudserver/pkg/filesystem/driver/remote"
+	"github.com/jylc/cloudserver/pkg/filesystem/driver/shadow/slaveinmaster"
 	"github.com/jylc/cloudserver/pkg/filesystem/fsctx"
 	"github.com/jylc/cloudserver/pkg/serializer"
 	"sync"
@@ -166,4 +168,8 @@ func (fs *FileSystem) SetTargetDir(dirs *[]models.Folder) {
 	} else {
 		fs.DirTarget = append(fs.DirTarget, *dirs...)
 	}
+}
+
+func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
+	fs.Handler = slaveinmaster.NewDriver(node, fs.Handler, fs.Policy)
 }

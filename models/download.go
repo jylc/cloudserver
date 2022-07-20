@@ -101,3 +101,15 @@ func (download *Download) GetNodeID() uint {
 	}
 	return download.NodeID
 }
+
+func GetDownloadsByStatus(status ...int) []Download {
+	var task []Download
+	Db.Where("status in (?)", status).Find(&task)
+	return task
+}
+
+func GetDownloadByGid(gid string, uid uint) (*Download, error) {
+	download := &Download{}
+	result := Db.Where("user_id = ? and g_id = ?", uid, gid).First(download)
+	return download, result.Error
+}

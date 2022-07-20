@@ -147,3 +147,14 @@ func (client *Client) ObtainToken(ctx context.Context, opts ...Option) (*Credent
 
 	return &credential, nil
 }
+
+func (client *Client) OAuthURL(ctx context.Context, scope []string) string {
+	query := url.Values{
+		"client_id":     {client.ClientID},
+		"scope":         {strings.Join(scope, "")},
+		"response_type": {"code"},
+		"redirect_uri":  {client.Redirect},
+	}
+	client.Endpoints.OAuthEndpoints.authorize.RawQuery = query.Encode()
+	return client.Endpoints.OAuthEndpoints.authorize.String()
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/aria2"
 	"github.com/jylc/cloudserver/pkg/auth"
 	"github.com/jylc/cloudserver/pkg/request"
 	"github.com/jylc/cloudserver/pkg/serializer"
@@ -33,7 +34,7 @@ func (service *Aria2TestService) TestMaster() serializer.Response {
 }
 
 func (service *Aria2TestService) TestSlave() serializer.Response {
-	salve, err := url.Parse(service.Server)
+	slave, err := url.Parse(service.Server)
 	if err != nil {
 		return serializer.ParamErr("Unable to resolve the slave address. "+err.Error(), nil)
 	}
@@ -44,7 +45,7 @@ func (service *Aria2TestService) TestSlave() serializer.Response {
 	r := request.NewClient()
 	res, err := r.Request(
 		"POST",
-		slave.ResloveReference(controller).String(),
+		slave.ResolveReference(controller).String(),
 		bytes.NewReader(bodyByte),
 		request.WithTimeout(time.Duration(10)*time.Second),
 		request.WithCredential(
