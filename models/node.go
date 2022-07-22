@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"encoding/json"
+	"gorm.io/gorm"
+)
 
 type Node struct {
 	gorm.Model
@@ -56,4 +59,11 @@ func (node *Node) SetStatus(status NodeStatus) error {
 	return Db.Model(&node).Updates(map[string]interface{}{
 		"status": status,
 	}).Error
+}
+
+func (node *Node) AfterFind() (err error) {
+	if node.Aria2Options != "" {
+		err = json.Unmarshal([]byte(node.Aria2Options), &node.Aria2OptionsSerialized)
+	}
+	return err
 }
