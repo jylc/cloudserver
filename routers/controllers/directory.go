@@ -1,6 +1,9 @@
 package controllers
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/jylc/cloudserver/service/explorer"
+)
 
 func CreateDirectory(c *gin.Context) {
 	var service explorer.DirectoryService

@@ -243,3 +243,14 @@ func (file *File) Rename(new string) error {
 func (file *File) CanCopy() bool {
 	return file.UploadSessionID == nil
 }
+
+func GetUploadPlaceholderFiles(uid uint) []*File {
+	query := Db
+	if uid != 0 {
+		query = query.Where("user_id = ?", uid)
+	}
+
+	var files []*File
+	query.Where("upload_session_id is not NULL").Find(&files)
+	return files
+}

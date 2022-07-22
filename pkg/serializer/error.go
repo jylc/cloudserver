@@ -33,6 +33,8 @@ const (
 	CodeConflict = 409
 	// CodeUploadFailed 上传出错
 	CodeUploadFailed = 40002
+	// CodeCreateFolderFailed 目录创建失败
+	CodeCreateFolderFailed = 40003
 	// CodeSignExpired 签名过期
 	CodeSignExpired = 40005
 	// CodePolicyNotAllowed 当前存储策略不允许
@@ -41,10 +43,16 @@ const (
 	CodeMasterNotFound = 40009
 	// CodeUploadSessionExpired 上传会话已过期
 	CodeUploadSessionExpired = 400011
+	// CodeInvalidChunkIndex 无效的分片序号
+	CodeInvalidChunkIndex = 400012
 	// CodeInvalidContentLength 无效的正文长度
 	CodeInvalidContentLength = 400013
+	// CodeBatchSourceSize 超出批量获取外链限制
+	CodeBatchSourceSize = 40014
 	// CodeBatchAria2Size 超出最大 Aria2 任务数量限制
 	CodeBatchAria2Size = 40015
+	// CodeParentNotExist 父目录不存在
+	CodeParentNotExist = 40016
 	// CodeUserBaned 用户不活跃
 	CodeUserBaned = 40017
 	// CodeUserNotActivated 用户不活跃

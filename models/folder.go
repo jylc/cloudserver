@@ -38,6 +38,22 @@ func (folder *Folder) GetPosition() string {
 	return folder.Position
 }
 
+func (folder *Folder) TraceRoot() error {
+	if folder.ParentID == nil {
+		return nil
+	}
+
+	var parentFolder Folder
+	err := Db.Where("id = ? AND owner_id = ?", folder.ParentID, folder.OwnerID).First(&parentFolder).Error
+
+	if err == nil {
+		err := parentFolder.TraceRoot()
+		folder.Position = path.Join(parentFolder.Position, parentFolder.Name)
+		return err
+	}
+	return err
+}
+
 func (folder *Folder) Create() (uint, error) {
 	if err := Db.FirstOrCreate(folder, *folder).Error; err != nil {
 		folder.Model = gorm.Model{}

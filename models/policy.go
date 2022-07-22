@@ -173,3 +173,19 @@ func (policy *Policy) CanStructureBeListed() bool {
 func (policy *Policy) IsDirectlyPreview() bool {
 	return policy.Type == "local"
 }
+
+func (policy *Policy) IsUploadPlaceholderWithSize() bool {
+	if policy.Type == "remote" {
+		return true
+	}
+
+	if utils.ContainsString([]string{"onedrive", "oss", "qiniu", "cos", "s3"}, policy.Type) {
+		return policy.OptionsSerialized.PlaceholderWithSize
+	}
+
+	return false
+}
+
+func (policy *Policy) IsTransitUpload(size uint64) bool {
+	return policy.Type == "local"
+}

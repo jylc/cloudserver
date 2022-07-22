@@ -242,3 +242,8 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 	fileHeader.SetModel(file)
 	return nil
 }
+
+func HookClearFileHeaderSize(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+	fileHeader.SetSize(0)
+	return nil
+}

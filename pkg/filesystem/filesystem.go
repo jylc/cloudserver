@@ -173,3 +173,19 @@ func (fs *FileSystem) SetTargetDir(dirs *[]models.Folder) {
 func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
 	fs.Handler = slaveinmaster.NewDriver(node, fs.Handler, fs.Policy)
 }
+
+func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
+	fs, err := NewFileSystemFromContext(c)
+	if err != nil {
+		return nil, err
+	}
+	callbackSessionRaw, ok := c.Get(UploadSessionCtx)
+	if !ok {
+		return nil, errors.New("callback session not found")
+	}
+
+	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+	fs.Policy = &callbackSession.Policy
+	err = fs.DispatchHandler()
+	return fs, err
+}

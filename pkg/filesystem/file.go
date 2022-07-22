@@ -215,3 +215,24 @@ func (fs *FileSystem) GetDownloadURL(ctx context.Context, id uint, timeout strin
 
 	return source, nil
 }
+
+func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error) {
+	err := fs.resetFileIDIfNotExist(ctx, fileID)
+	if err != nil {
+		return "", ErrObjectNotExist.WithError(err)
+	}
+
+	if !fs.Policy.IsOriginLinkEnable {
+		return "", serializer.NewError(
+			serializer.CodePolicyNotAllowed,
+			"The current storage policy cannot obtain the external chain",
+			nil,
+		)
+	}
+
+	source, err := fs.SignURL(ctx, &fs.FileTarget[0], 0, false)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeNotSet, "Unable to get external chain", err)
+	}
+	return source, nil
+}

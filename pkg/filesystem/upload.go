@@ -3,13 +3,17 @@ package filesystem
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/cache"
 	"github.com/jylc/cloudserver/pkg/filesystem/fsctx"
 	"github.com/jylc/cloudserver/pkg/request"
+	"github.com/jylc/cloudserver/pkg/serializer"
 	"github.com/jylc/cloudserver/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path"
+	"time"
 )
 
 const (
@@ -143,4 +147,63 @@ func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, mode 
 		VirtualPath: path.Dir(dst),
 		Mode:        mode,
 	}, true)
+}
+
+func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileStream) (*serializer.UploadCredential, error) {
+	callBackSessionTTL := models.GetIntSetting("upload_session_timeout", 86400)
+
+	callbackKey := uuid.Must(uuid.NewV4()).String()
+	fileSize := file.Size
+
+	file.Mode = fsctx.Nop
+
+	if callbackKey != "" {
+		file.UploadSessionID = &callbackKey
+	}
+
+	fs.Use("BeforeUpload", HookValidateFile)
+	fs.Use("BeforeUpload", HookValidateCapacity)
+
+	if err := fs.Upload(ctx, file); err != nil {
+		return nil, err
+	}
+
+	uploadSession := &serializer.UploadSession{
+		Key:            callbackKey,
+		UID:            fs.User.ID,
+		VirtualPath:    file.VirtualPath,
+		Name:           file.Name,
+		Size:           fileSize,
+		SavePath:       file.SavePath,
+		LastModified:   file.LastModified,
+		Policy:         *fs.Policy,
+		CallbackSecret: utils.RandStringRunes(32),
+	}
+
+	credential, err := fs.Handler.Token(ctx, int64(callBackSessionTTL), uploadSession, file)
+	if err != nil {
+		return nil, err
+	}
+
+	if !fs.Policy.IsUploadPlaceholderWithSize() {
+		fs.Use("AfterUpload", HookClearFileHeaderSize)
+	}
+	fs.Use("AfterUpload", GenericAfterUpload)
+	ctx = context.WithValue(ctx, fsctx.IgnoreDirectoryConflictCtx, true)
+	if err := fs.Upload(ctx, file); err != nil {
+		return nil, err
+	}
+
+	err = cache.Set(
+		UploadSessionCachePrefix+callbackKey,
+		*uploadSession,
+		callBackSessionTTL,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	credential.Expires = time.Now().Add(time.Duration(callBackSessionTTL) * time.Second).Unix()
+	return credential, nil
 }
