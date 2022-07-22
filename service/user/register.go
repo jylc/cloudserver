@@ -26,7 +26,7 @@ func (service *RegisterService) Register(c *gin.Context) serializer.Response {
 	user.Email = service.UserName
 	user.Nick = strings.Split(service.UserName, "@")[0]
 	user.SetPassword(service.Password)
-	user.Status = models.Activate
+	user.Status = models.Active
 	if isEmailRequired {
 		user.Status = models.NotActivate
 	}
@@ -82,6 +82,6 @@ func (service *SettingService) Activate(c *gin.Context) serializer.Response {
 	if user.Status != models.NotActivate {
 		return serializer.Err(serializer.CodeUserCannotActivate, "This user cannot be activated", nil)
 	}
-	user.SetStatus(models.Activate)
+	user.SetStatus(models.Active)
 	return serializer.Response{Data: user.Email}
 }

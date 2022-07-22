@@ -1,6 +1,9 @@
 package serializer
 
-import "github.com/jylc/cloudserver/models"
+import (
+	"github.com/jylc/cloudserver/models"
+	"time"
+)
 
 type SiteConfig struct {
 	SiteName             string `json:"title"`
@@ -54,4 +57,30 @@ func checkSettingValue(setting map[string]string, key string) string {
 		return v
 	}
 	return ""
+}
+
+type task struct {
+	Status     int       `json:"status"`
+	Type       int       `json:"type"`
+	CreateDate time.Time `json:"create_date"`
+	Progress   int       `json:"progress"`
+	Error      string    `json:"error"`
+}
+
+func BuildTaskList(tasks []models.Task, total int) Response {
+	res := make([]task, 0, len(tasks))
+	for _, t := range tasks {
+		res = append(res, task{
+			Status:     t.Status,
+			Type:       t.Type,
+			CreateDate: t.CreatedAt,
+			Progress:   t.Progress,
+			Error:      t.Error,
+		})
+	}
+
+	return Response{Data: map[string]interface{}{
+		"total": total,
+		"tasks": res,
+	}}
 }

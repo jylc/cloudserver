@@ -9,6 +9,7 @@ import (
 	"github.com/jylc/cloudserver/pkg/authn"
 	"github.com/jylc/cloudserver/pkg/request"
 	"github.com/jylc/cloudserver/pkg/serializer"
+	"github.com/jylc/cloudserver/pkg/thumb"
 	"github.com/jylc/cloudserver/pkg/utils"
 	"github.com/jylc/cloudserver/service/user"
 )
@@ -228,7 +229,7 @@ func UserTasks(c *gin.Context) {
 func UserSetting(c *gin.Context) {
 	var service user.SettingService
 	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Setting(c, CurrentUser(c))
+		res := service.Settings(c, CurrentUser(c))
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
@@ -264,7 +265,7 @@ func UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	avatar, err := humb.NewThumbFromFile(r, file.Filename)
+	avatar, err := thumb.NewThumbFromFile(r, file.Filename)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "unable to parse image data", err))
 		return
@@ -300,7 +301,7 @@ func UpdateOption(c *gin.Context) {
 		case "homepage":
 			subService = &user.HomePage{}
 		case "password":
-			subService = &user.Password{}
+			subService = &user.PasswordChange{}
 		case "2fa":
 			subService = &user.Enable2FA{}
 		case "authn":

@@ -76,7 +76,7 @@ func PreviewShareText(c *gin.Context) {
 
 	var service share.Service
 	if err := c.ShouldBindQuery(&service); err == nil {
-		res := service.PreviewContent(ctx, c, nil)
+		res := service.PreviewContent(ctx, c, false)
 		if res.Code != 0 {
 			c.JSON(200, res)
 		}

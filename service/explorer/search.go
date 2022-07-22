@@ -2,9 +2,9 @@ package explorer
 
 import (
 	"context"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/gin-gonic/gin"
+	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/filesystem"
 	"github.com/jylc/cloudserver/pkg/hashid"
 	"github.com/jylc/cloudserver/pkg/serializer"
 	"strings"
@@ -44,8 +44,8 @@ func (service *ItemSearchService) Search(c *gin.Context) serializer.Response {
 		return service.SearchKeywords(c, fs, "%.txt", "%.md", "%.pdf", "%.doc", "%.docx", "%.ppt", "%.pptx", "%.xls", "%.xlsx", "%.pub")
 	case "tag":
 		if tid, err := hashid.DecodeHashID(service.Keywords, hashid.TagID); err == nil {
-			if tag, err := model.GetTagsByID(tid, fs.User.ID); err == nil {
-				if tag.Type == model.FileTagType {
+			if tag, err := models.GetTagsByID(tid, fs.User.ID); err == nil {
+				if tag.Type == models.FileTagType {
 					exp := strings.Split(tag.Expression, "\n")
 					expInput := make([]interface{}, len(exp))
 					for i := 0; i < len(exp); i++ {

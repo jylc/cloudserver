@@ -45,3 +45,9 @@ func TestRPCConnection(server, secret string, timeout int) (rpc.VersionInfo, err
 	}
 	return caller.GetVersion()
 }
+
+func GetLoadBalancer() balancer.Balancer {
+	Lock.RLock()
+	defer Lock.RUnlock()
+	return LB
+}

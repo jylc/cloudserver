@@ -39,6 +39,8 @@ const (
 	CodeSignExpired = 40005
 	// CodePolicyNotAllowed 当前存储策略不允许
 	CodePolicyNotAllowed = 40006
+	// CodeAdminRequired 非管理用户组
+	CodeAdminRequired = 40008
 	// CodeMasterNotFound 主机节点未注册
 	CodeMasterNotFound = 40009
 	// CodeUploadSessionExpired 上传会话已过期

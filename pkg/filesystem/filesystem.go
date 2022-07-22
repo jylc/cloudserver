@@ -189,3 +189,16 @@ func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 	err = fs.DispatchHandler()
 	return fs, err
 }
+
+func (fs *FileSystem) SetTargetByInterface(target interface{}) error {
+	if file, ok := target.(*models.File); ok {
+		fs.SetTargetFile(&[]models.File{*file})
+		return nil
+	}
+	if folder, ok := target.(*models.Folder); ok {
+		fs.SetTargetDir(&[]models.Folder{*folder})
+		return nil
+	}
+
+	return ErrObjectNotExist
+}

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"github.com/jylc/cloudserver/pkg/utils"
 	"gorm.io/gorm"
@@ -11,7 +12,7 @@ import (
 )
 
 const (
-	Activate = iota
+	Active = iota
 	NotActivate
 	Baned
 	OveruseBaned
@@ -43,13 +44,13 @@ type UserOption struct {
 
 func GetActivateUserByID(uid interface{}) (User, error) {
 	var user User
-	result := Db.Set("gorm:auto_preload", true).Where("status = ?", Activate).Find(&user, uid)
+	result := Db.Set("gorm:auto_preload", true).Where("status = ?", Active).Find(&user, uid)
 	return user, result.Error
 }
 
 func GetActivateUserByEmail(email string) (User, error) {
 	var user User
-	result := Db.Set("gorm:auto_preload", true).Where("status = ? and email = ?", Activate, email).First(&user)
+	result := Db.Set("gorm:auto_preload", true).Where("status = ? and email = ?", Active, email).First(&user)
 	return user, result.Error
 }
 
@@ -152,5 +153,17 @@ func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 	}
 	user.Storage += size
 	Db.Model(user).Update("storage", gorm.Expr("storage + ?", size))
+}
 
+func (user *User) UpdateOptions() error {
+	if err := user.SerializeOptions(); err != nil {
+		return err
+	}
+	return user.Update(map[string]interface{}{"options": user.Options})
+}
+
+func (user *User) SerializeOptions() (err error) {
+	optionsValue, err := json.Marshal(&user.OptionsSerialized)
+	user.Options = string(optionsValue)
+	return err
 }

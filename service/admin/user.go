@@ -127,10 +127,10 @@ func (service *UserService) Ban() serializer.Response {
 		return serializer.Err(serializer.CodeNoPermissionErr, "Unable to block the initial user", err)
 	}
 
-	if user.Status == models.Activate {
+	if user.Status == models.Active {
 		user.SetStatus(models.Baned)
 	} else {
-		user.SetStatus(models.Activate)
+		user.SetStatus(models.Active)
 	}
 	return serializer.Response{Data: user.Status}
 }

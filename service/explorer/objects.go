@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/auth"
 	"github.com/jylc/cloudserver/pkg/cache"
+	"github.com/jylc/cloudserver/pkg/filesystem"
 	"github.com/jylc/cloudserver/pkg/hashid"
 	"github.com/jylc/cloudserver/pkg/serializer"
+	"github.com/jylc/cloudserver/pkg/task"
 	"github.com/jylc/cloudserver/pkg/utils"
 	"math"
 	"path"
@@ -177,7 +177,7 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}
 
-	task.TaskPoll.Submit(job)
+	task.TaskPool.Submit(job)
 	return serializer.Response{}
 }
 
@@ -224,7 +224,7 @@ func (service *ItemDecompressService) CreateDecompressTask(c *gin.Context) seria
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "Task creation failed", err)
 	}
-	task.TaskPoll.Submit(job)
+	task.TaskPool.Submit(job)
 
 	return serializer.Response{}
 }

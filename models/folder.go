@@ -251,3 +251,9 @@ func (folder *Folder) MoveFolderTo(dirs []uint, dstFolder *Folder) error {
 
 	return err
 }
+
+func GetFoldersByIDs(ids []uint, uid uint) ([]Folder, error) {
+	var folders []Folder
+	result := Db.Where("id in (?) AND owner_id = ?", ids, uid).Find(&folders)
+	return folders, result.Error
+}

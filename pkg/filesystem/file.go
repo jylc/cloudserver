@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"fmt"
 	"github.com/juju/ratelimit"
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/cache"
@@ -235,4 +236,24 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 		return "", serializer.NewError(serializer.CodeNotSet, "Unable to get external chain", err)
 	}
 	return source, nil
+}
+
+func (fs *FileSystem) Search(ctx context.Context, keywords ...interface{}) ([]serializer.Object, error) {
+	parents := make([]uint, 0)
+
+	if fs.Root != nil {
+		allFolders, err := models.GetRecursiveChildFolder([]uint{fs.Root.ID}, fs.User.ID, true)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list all folders: %w", err)
+		}
+
+		for _, folder := range allFolders {
+			parents = append(parents, folder.ID)
+		}
+	}
+
+	files, _ := models.GetFilesByKeywords(fs.User.ID, parents, keywords...)
+	fs.SetTargetFile(&files)
+
+	return fs.listObjects(ctx, "/", files, nil, nil), nil
 }

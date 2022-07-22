@@ -23,6 +23,13 @@ const (
 	Unknown
 )
 
+const (
+	// URLTask 从URL添加的任务
+	URLTask = iota
+	// TorrentTask 种子任务
+	TorrentTask
+)
+
 type Aria2 interface {
 	Init() error
 

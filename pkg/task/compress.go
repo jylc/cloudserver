@@ -134,3 +134,22 @@ func NewCompressTaskFromModel(task *models.Task) (Job, error) {
 	}
 	return newTask, nil
 }
+
+func NewCompressTask(user *models.User, dst string, dirs, files []uint) (Job, error) {
+	newTask := &CompressTask{
+		User: user,
+		TaskProps: CompressProps{
+			Dirs:  dirs,
+			Files: files,
+			Dst:   dst,
+		},
+	}
+
+	record, err := Record(newTask)
+	if err != nil {
+		return nil, err
+	}
+	newTask.TaskModel = record
+
+	return newTask, nil
+}

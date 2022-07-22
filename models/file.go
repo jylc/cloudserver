@@ -254,3 +254,30 @@ func GetUploadPlaceholderFiles(uid uint) []*File {
 	query.Where("upload_session_id is not NULL").Find(&files)
 	return files
 }
+
+func GetFilesByKeywords(uid uint, parents []uint, keywords ...interface{}) ([]File, error) {
+	var (
+		files      []File
+		result     = Db
+		conditions string
+	)
+
+	for i := 0; i < len(keywords); i++ {
+		conditions += "name like ?"
+		if i != len(keywords)-1 {
+			conditions += " or "
+		}
+	}
+
+	if uid != 0 {
+		result = result.Where("user_id = ?", uid)
+	}
+
+	if len(parents) > 0 {
+		result = result.Where("folder_id in (?)", parents)
+	}
+
+	result = result.Where("("+conditions+")", keywords...).Find(&files)
+
+	return files, result.Error
+}

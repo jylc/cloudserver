@@ -93,3 +93,22 @@ func NewDecompressTaskFromModel(task *models.Task) (Job, error) {
 	}
 	return newTask, nil
 }
+
+func NewDecompressTask(user *models.User, src, dst, encoding string) (Job, error) {
+	newTask := &DecompressTask{
+		User: user,
+		TaskProps: DecompressProps{
+			Src:      src,
+			Dst:      dst,
+			Encoding: encoding,
+		},
+	}
+
+	record, err := Record(newTask)
+	if err != nil {
+		return nil, err
+	}
+	newTask.TaskModel = record
+
+	return newTask, nil
+}

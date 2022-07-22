@@ -12,8 +12,21 @@ type Tag struct {
 	UserID     uint   //创建者ID
 }
 
+const (
+	// FileTagType 文件分类标签
+	FileTagType = iota
+	// DirectoryLinkType 目录快捷方式标签
+	DirectoryLinkType
+)
+
 func GetTagsByUID(uid uint) ([]Tag, error) {
 	var tag []Tag
 	result := Db.Where("user_id = ?", uid).Find(&tag)
 	return tag, result.Error
+}
+
+func GetTagsByID(id, uid uint) (*Tag, error) {
+	var tag Tag
+	result := Db.Where("user_id = ? and id = ?", uid, id).First(&tag)
+	return &tag, result.Error
 }

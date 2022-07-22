@@ -3,7 +3,6 @@ module github.com/jylc/cloudserver
 go 1.16
 
 require (
-	github.com/cloudreve/Cloudreve/v3 v3.0.0-20220718120357-a1880672b178
 	github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/gzip v0.0.6

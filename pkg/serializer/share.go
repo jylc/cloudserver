@@ -16,7 +16,7 @@ type Share struct {
 	Expire     int64         `json:"expire"`
 	Preview    bool          `json:"preview"`
 	Creator    *shareCreator `json:"creator,omitempty"`
-	Source     *shareCreator `json:"source,omitempty"`
+	Source     *shareSource  `json:"source,omitempty"`
 }
 
 type shareCreator struct {
@@ -84,4 +84,46 @@ func BuildShareList(shares []models.Share, total int) Response {
 			"items": res,
 		},
 	}
+}
+
+func BuildShareResponse(share *models.Share, unlocked bool) Share {
+	creator := share.Creator()
+	resp := Share{
+		Key:    hashid.HashID(share.ID, hashid.ShareID),
+		Locked: !unlocked,
+		Creator: &shareCreator{
+			Key:       hashid.HashID(creator.ID, hashid.UserID),
+			Nick:      creator.Nick,
+			GroupName: creator.Group.Name,
+		},
+		CreateData: share.CreatedAt,
+	}
+
+	if !unlocked {
+		return resp
+	}
+
+	resp.IsDir = share.IsDir
+	resp.Downloads = share.Downloads
+	resp.Views = share.Views
+	resp.Preview = share.PreviewEnabled
+	if share.Expires != nil {
+		resp.Expire = share.Expires.Unix() - time.Now().Unix()
+	}
+
+	if share.IsDir {
+		source := share.SourceFolder()
+		resp.Source = &shareSource{
+			Name: source.Name,
+			Size: 0,
+		}
+	} else {
+		source := share.SourceFile()
+		resp.Source = &shareSource{
+			Name: source.Name,
+			Size: source.Size,
+		}
+	}
+
+	return resp
 }

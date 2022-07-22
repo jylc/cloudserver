@@ -1,6 +1,8 @@
 package serializer
 
 import (
+	"fmt"
+	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/jylc/cloudserver/models"
 	"github.com/jylc/cloudserver/pkg/hashid"
 	"time"
@@ -93,5 +95,47 @@ func buildTagRes(tags []models.Tag) []tag {
 func BuildUserResponse(user models.User) Response {
 	return Response{
 		Data: BuildUser(user),
+	}
+}
+
+func BuildUserStorageResponse(user models.User) Response {
+	total := user.Group.MaxStorage
+	storageResp := storage{
+		Used:  user.Storage,
+		Free:  total - user.Storage,
+		Total: total,
+	}
+
+	if total < user.Storage {
+		storageResp.Free = 0
+	}
+
+	return Response{
+		Data: storageResp,
+	}
+}
+
+type WebAuthnCredentials struct {
+	ID          []byte `json:"id"`
+	FingerPrint string `json:"fingerprint"`
+}
+
+func BuildWebAuthnList(credentials []webauthn.Credential) []WebAuthnCredentials {
+	res := make([]WebAuthnCredentials, 0, len(credentials))
+	for _, v := range credentials {
+		credential := WebAuthnCredentials{
+			ID:          v.ID,
+			FingerPrint: fmt.Sprintf("% X", v.Authenticator.AAGUID),
+		}
+		res = append(res, credential)
+	}
+
+	return res
+}
+
+func CheckLogin() Response {
+	return Response{
+		Code: CodeCheckLogin,
+		Msg:  "未登录",
 	}
 }

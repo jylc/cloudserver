@@ -1,13 +1,13 @@
 package aria2
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/gin-gonic/gin"
 	"github.com/jylc/cloudserver/models"
+	"github.com/jylc/cloudserver/pkg/aria2"
 	"github.com/jylc/cloudserver/pkg/aria2/common"
 	"github.com/jylc/cloudserver/pkg/aria2/monitor"
 	"github.com/jylc/cloudserver/pkg/cluster"
+	"github.com/jylc/cloudserver/pkg/filesystem"
 	"github.com/jylc/cloudserver/pkg/mq"
 	"github.com/jylc/cloudserver/pkg/serializer"
 )
